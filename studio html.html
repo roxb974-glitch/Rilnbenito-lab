@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f0d14">
+<title>Vocal Booth: record, mix and download</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;800&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f0d14;--card:#1a1722;--line:#322d41;--ink:#f3eff8;--mut:#a69fb8;--hot:#ff5c8a;--glow:#ffc15e;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+main{max-width:640px;margin:0 auto;padding:22px 18px 70px}
+a{color:var(--glow)}
+h1{font:800 clamp(2.2rem,9vw,3.4rem)/.95 "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.03em;margin:8px 0 8px}
+h2{font:800 1.25rem "Bricolage Grotesque",sans-serif;margin:0 0 10px}
+.lead{color:var(--mut);margin:0 0 18px}
+section{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+label{display:block;font-weight:500;margin:12px 0 5px}
+input[type=text],textarea,select{width:100%;padding:11px;border:1.5px solid var(--line);border-radius:10px;background:#120f19;color:var(--ink);font:inherit}
+textarea{resize:vertical;min-height:80px}
+input[type=range]{width:100%;accent-color:var(--hot)}
+:focus-visible{outline:3px solid var(--glow);outline-offset:2px}
+.row{display:flex;justify-content:space-between;gap:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button{font:500 1rem "IBM Plex Sans",sans-serif;border-radius:12px;padding:12px 14px;cursor:pointer;border:1.5px solid var(--glow);background:transparent;color:var(--glow)}
+button.p{background:var(--hot);border-color:var(--hot);color:#1a0b10;font:800 1.1rem "Bricolage Grotesque",sans-serif}
+button.rec{background:#c62a4f;border-color:#c62a4f;color:#fff}
+button:disabled{opacity:.5;cursor:wait}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.st{min-height:1.4em;margin:10px 0 0;color:var(--mut)}.st.err{color:var(--hot)}
+.hint{color:var(--mut);font-size:.9rem;margin:6px 0 0}
+audio{width:100%;margin-top:10px}
+.chk{display:flex;gap:8px;align-items:center;margin-top:10px}.chk input{width:20px;height:20px;accent-color:var(--hot)}
+</style>
+</head>
+<body>
+<main>
+  <p><a href="index.html">&larr; Song maker</a></p>
+  <h1>Vocal Booth</h1>
+  <p class="lead">Make a beat, record your voice over it, then clean, mix, master and download. Use headphones so the beat doesn't leak into the mic.</p>
+
+  <section>
+    <h2>1. Beat</h2>
+    <label for="lyr">Lyrics (the beat takes its mood from these)</label>
+    <textarea id="lyr" placeholder="Paste or write your lyrics"></textarea>
+    <label for="sty">Beat style</label>
+    <input id="sty" type="text" value="hip hop, punchy drums, deep bass">
+    <div class="two">
+      <div><label for="bpm">Tempo <span id="bpmv">95</span> BPM</label><input id="bpm" type="range" min="60" max="180" value="95"></div>
+      <div><label for="len">Length <span id="lenv">60</span> sec</label><input id="len" type="range" min="30" max="180" step="10" value="60"></div>
+    </div>
+    <div class="btns"><button class="p" id="mk">Make beat</button><label style="margin:0"><button type="button" onclick="this.nextElementSibling.click()" style="width:100%">Upload a beat</button><input id="bf" type="file" accept="audio/*" hidden></label></div>
+    <audio id="beatEl" controls hidden></audio>
+    <div class="st" id="s1" role="status" aria-live="polite"></div>
+  </section>
+
+  <section>
+    <h2>2. Record your voice</h2>
+    <div class="btns"><button class="rec" id="rec">Record over beat</button><button id="stop" disabled>Stop</button></div>
+    <label style="margin-top:14px"><button type="button" onclick="this.nextElementSibling.click()" style="width:100%">Or upload a vocal file</button><input id="vf" type="file" accept="audio/*" hidden></label>
+    <label for="off">Sync offset <span id="offv">0</span> ms</label>
+    <input id="off" type="range" min="-200" max="500" step="5" value="0">
+    <p class="hint">If your voice sounds late against the beat, raise the offset. If it sounds early, lower it.</p>
+    <div class="two"><div><label for="ts">Trim start <span id="tsv">0.0</span>s</label><input id="ts" type="range" min="0" max="0" step="0.1" value="0"></div>
+    <div><label for="te">Trim end <span id="tev">0.0</span>s</label><input id="te" type="range" min="0" max="0" step="0.1" value="0"></div></div>
+    <div class="st" id="s2" role="status" aria-live="polite"></div>
+  </section>
+
+  <section>
+    <h2>3. Voice and effects</h2>
+    <label for="vt">Voice</label>
+    <select id="vt">
+      <option value="0">Original</option><option value="-4">Male</option><option value="4">Female</option>
+      <option value="8">Kid</option><option value="6">Girl</option><option value="5">Boy</option>
+      <option value="4,-4">Female &amp; Male</option><option value="5,7">Boy &amp; Girl</option>
+    </select>
+    <p class="hint">Voice changes shift pitch only, so they sound approximate. Small shifts sound best.</p>
+    <div class="two">
+      <div><label for="tone">Tone</label><select id="tone"><option>Natural</option><option>Warm</option><option>Bright</option><option>Radio</option></select></div>
+      <div><label for="dn">Denoise <span id="dnv">40</span>%</label><input id="dn" type="range" min="0" max="100" value="40"></div>
+    </div>
+    <div class="two">
+      <div><label for="rv">Reverb <span id="rvv">20</span>%</label><input id="rv" type="range" min="0" max="100" value="20"></div>
+      <div><label for="ec">Echo <span id="ecv">0</span>%</label><input id="ec" type="range" min="0" max="100" value="0"></div>
+    </div>
+    <div class="two">
+      <div><label for="fi">Fade in <span id="fiv">0</span>s</label><input id="fi" type="range" min="0" max="10" step="0.5" value="0"></div>
+      <div><label for="fo">Fade out <span id="fov">2</span>s</label><input id="fo" type="range" min="0" max="10" step="0.5" value="2"></div>
+    </div>
+    <label for="bl">Beat level <span id="blv">80</span>%</label><input id="bl" type="range" min="0" max="150" value="80">
+    <label for="vol">Volume <span id="volv">100</span>%</label><input id="vol" type="range" min="0" max="200" value="100">
+    <div class="chk"><input id="mst" type="checkbox" checked><label for="mst" style="margin:0">Auto mix and master (compression, glue, limiter)</label></div>
+  </section>
+
+  <section>
+    <h2>4. Mix and download</h2>
+    <button class="p" id="mix" style="width:100%">Mix my song</button>
+    <audio id="out" controls hidden></audio>
+    <div class="btns" id="dl" hidden><button id="dw">Download WAV</button><button id="dm">Download mp3</button></div>
+    <div class="st" id="s4" role="status" aria-live="polite"></div>
+  </section>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+<script>
+const $=id=>document.getElementById(id), SR=48000, AC=window.AudioContext||window.webkitAudioContext;
+let ac, beat=null, voice=null, mr=null, chunks=[], stream=null, bsrc=null, mixed=null;
+const say=(id,m,e)=>{const el=$(id);el.textContent=m;el.className="st"+(e?" err":"")};
+const ctx=()=>{ac=ac||new AC({sampleRate:SR});return ac};
+[["bpm","bpmv"],["len","lenv"],["off","offv"],["ts","tsv"],["te","tev"],["dn","dnv"],["rv","rvv"],["ec","ecv"],["fi","fiv"],["fo","fov"],["bl","blv"],["vol","volv"]]
+ .forEach(([a,b])=>$(a).addEventListener("input",()=>$(b).textContent=$(a).value));
+
+const post=(u,b)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Something went wrong.");return d});
+async function setBeat(arrayBuf,url){beat=await ctx().decodeAudioData(arrayBuf);$("beatEl").src=url;$("beatEl").hidden=false}
+
+$("mk").onclick=async()=>{
+  $("mk").disabled=true;say("s1","Sending your beat request...");
+  try{
+    const theme=$("lyr").value.trim().slice(0,160).replace(/\s+/g," ");
+    const prompt=[$("sty").value.trim(),"instrumental, no vocals",theme?"mood matching these lyrics: "+theme:""].filter(Boolean).join(", ");
+    const {id}=await post("/api/song",{prompt,lyrics:"",instrumental:true,duration:+$("len").value,bpm:+$("bpm").value});
+    const t0=Date.now();
+    while(true){
+      if(Date.now()-t0>6*60000)throw new Error("Taking too long. Check that your music server is running.");
+      await new Promise(r=>setTimeout(r,3000));
+      const r=await fetch("/api/song?id="+id),d=await r.json().catch(()=>({}));
+      if(!r.ok||d.status==="error")throw new Error(d.error||"The beat could not be made.");
+      if(d.status==="done"){const buf=await (await fetch(d.audio)).arrayBuffer();await setBeat(buf,d.audio);say("s1","Beat ready. Now record your voice.");break}
+      say("s1","Making your beat...");
+    }
+  }catch(e){say("s1",e.message,true)}
+  $("mk").disabled=false;
+};
+$("bf").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{await setBeat(await f.arrayBuffer(),URL.createObjectURL(f));say("s1","Beat loaded.")}catch{say("s1","Could not read that audio file.",true)}};
+
+function setVoice(buf){voice=buf;const d=Math.floor(buf.duration*10)/10;
+  ["ts","te"].forEach(i=>{$(i).max=d});$("ts").value=0;$("te").value=d;$("tsv").textContent="0.0";$("tev").textContent=d.toFixed(1);
+  say("s2","Voice ready ("+buf.duration.toFixed(1)+" sec). Adjust sync and trim if needed.")}
+$("vf").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{setVoice(await ctx().decodeAudioData(await f.arrayBuffer()))}catch{say("s2","Could not read that audio file.",true)}};
+
+$("rec").onclick=async()=>{
+  if(!beat){say("s2","Make or upload a beat first.",true);return}
+  try{
+    const a=ctx();await a.resume();
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:true,autoGainControl:false}});
+    chunks=[];mr=new MediaRecorder(stream);mr.ondataavailable=e=>chunks.push(e.data);
+    mr.onstop=async()=>{stream.getTracks().forEach(t=>t.stop());try{bsrc.stop()}catch{}
+      $("rec").disabled=false;$("stop").disabled=true;
+      try{setVoice(await a.decodeAudioData(await new Blob(chunks).arrayBuffer()))}catch{say("s2","Recording could not be read.",true)}};
+    bsrc=a.createBufferSource();bsrc.buffer=beat;bsrc.connect(a.destination);bsrc.onended=()=>{if(mr.state==="recording")mr.stop()};
+    mr.start();bsrc.start();$("rec").disabled=true;$("stop").disabled=false;say("s2","Recording... sing along with the beat.");
+  }catch{say("s2","Microphone access was blocked. Allow it in your browser settings.",true)}
+};
+$("stop").onclick=()=>{if(mr&&mr.state==="recording")mr.stop()};
+
+// --- DSP ---
+function gate(x,amt){ // simple noise gate; amt 0-100
+  if(!amt)return x;const th=Math.pow(10,(-60+amt*0.35)/20),blk=480,y=new Float32Array(x.length);let g=1;
+  for(let i=0;i<x.length;i+=blk){let s=0;const e=Math.min(i+blk,x.length);for(let j=i;j<e;j++)s+=x[j]*x[j];
+    const tgt=Math.sqrt(s/(e-i))<th?0.05:1;for(let j=i;j<e;j++){g+=(tgt-g)*(tgt>g?0.01:0.0015);y[j]=x[j]*g}}
+  return y}
+function pitchShift(x,st){ // overlap-add time stretch, then resample
+  if(!st)return x;const r=Math.pow(2,st/12),N=2048,Hs=N/4,Ha=Hs/r,n=x.length,m=Math.ceil(n*r)+N,y=new Float32Array(m),w=new Float32Array(N);
+  for(let i=0;i<N;i++)w[i]=0.5-0.5*Math.cos(2*Math.PI*i/N);
+  for(let o=0,a=0;o+N<m&&a+N<n;o+=Hs,a+=Ha){const ai=Math.floor(a);for(let i=0;i<N;i++)y[o+i]+=x[ai+i]*w[i]/2}
+  const out=new Float32Array(n);for(let i=0;i<n;i++){const p=i*r,k=Math.floor(p),f=p-k;out[i]=y[k]*(1-f)+(y[k+1]||0)*f}
+  return out}
+const ir=(oc,s=1.8)=>{const n=s*SR|0,b=oc.createBuffer(2,n,SR);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3)}return b};
+
+async function render(){
+  const off=+$("off").value/1000,ts=+$("ts").value,te=+$("te").value,bpm=+$("bpm").value;
+  let layers=[],vlen=0,skip=0;
+  if(voice){
+    let mono=voice.getChannelData(0).slice(Math.floor(ts*voice.sampleRate),Math.floor(te*voice.sampleRate));
+    if(off<0){skip=Math.floor(-off*voice.sampleRate);mono=mono.slice(skip)}
+    mono=gate(mono,+$("dn").value);
+    layers=$("vt").value.split(",").map(s=>pitchShift(mono,+s));vlen=mono.length/voice.sampleRate;
+  }
+  const dur=Math.max(beat?beat.duration:0,Math.max(off,0)+vlen)+1.5;
+  const oc=new OfflineAudioContext(2,Math.ceil(dur*SR),SR);
+  const bus=oc.createGain();
+  if(beat){const s=oc.createBufferSource();s.buffer=beat;const g=oc.createGain();g.gain.value=$("bl").value/100;s.connect(g).connect(bus);s.start(0)}
+  const tone=$("tone").value,mk=(t,f,gn)=>{const b=oc.createBiquadFilter();b.type=t;b.frequency.value=f;if(gn!==undefined)b.gain.value=gn;return b};
+  const rev=oc.createConvolver();rev.buffer=ir(oc);const rg=oc.createGain();rg.gain.value=$("rv").value/100*0.8;rev.connect(rg).connect(bus);
+  const dl=oc.createDelay(2);dl.delayTime.value=60/bpm/2;const fb=oc.createGain();fb.gain.value=0.35;dl.connect(fb).connect(dl);
+  const eg=oc.createGain();eg.gain.value=$("ec").value/100*0.7;dl.connect(eg).connect(bus);
+  layers.forEach(d=>{
+    const b=oc.createBuffer(1,d.length,SR);
+    b.copyToChannel(d,0);
+    const s=oc.createBufferSource();s.buffer=b;
+    const chain=[mk("highpass",tone==="Radio"?400:80),mk("lowshelf",200,tone==="Warm"?3:0),mk("peaking",3000,tone==="Bright"?3:1.5),mk("highshelf",6500,tone==="Bright"?4:0),mk("lowpass",tone==="Radio"?3400:16000)];
+    const c=oc.createDynamicsCompressor();c.threshold.value=-24;c.ratio.value=3;c.attack.value=0.005;c.release.value=0.15;
+    const vg=oc.createGain();vg.gain.value=1/Math.sqrt(layers.length);
+    let n=s;[...chain,c,vg].forEach(x=>{n.connect(x);n=x});n.connect(bus);n.connect(rev);n.connect(dl);
+    s.start(Math.max(off,0));
+  });
+  let n=bus;
+  if($("mst").checked){const gl=oc.createDynamicsCompressor();gl.threshold.value=-18;gl.ratio.value=2;gl.attack.value=0.02;gl.release.value=0.2;n.connect(gl);n=gl}
+  const vg=oc.createGain();vg.gain.value=$("vol").value/100;n.connect(vg);n=vg;
+  const lim=oc.createDynamicsCompressor();lim.threshold.value=-1.5;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=0.002;lim.release.value=0.08;n.connect(lim);n=lim;
+  const fd=oc.createGain(),fi=+$("fi").value,fo=+$("fo").value;fd.gain.setValueAtTime(fi?0:1,0);if(fi)fd.gain.linearRampToValueAtTime(1,fi);
+  if(fo){fd.gain.setValueAtTime(1,Math.max(fi,dur-1.5-fo));fd.gain.linearRampToValueAtTime(0,dur-1.5)}
+  n.connect(fd).connect(oc.destination);
+  return oc.startRendering();
+}
+$("mix").onclick=async()=>{
+  if(!beat&&!voice){say("s4","Add a beat or a voice first.",true);return}
+  $("mix").disabled=true;say("s4","Mixing and mastering...");
+  try{mixed=await render();const u=URL.createObjectURL(wav(mixed));$("out").src=u;$("out").hidden=false;$("dl").hidden=false;say("s4","Done. Play it, then download.")}
+  catch(e){say("s4","Mixing failed: "+e.message,true)}
+  $("mix").disabled=false;
+};
+function wav(b){const n=b.length,d=new DataView(new ArrayBuffer(44+n*4)),L=b.getChannelData(0),R=b.getChannelData(1);
+  const s=(o,t)=>[...t].forEach((c,i)=>d.setUint8(o+i,c.charCodeAt(0)));
+  s(0,"RIFF");d.setUint32(4,36+n*4,true);s(8,"WAVEfmt ");d.setUint32(16,16,true);d.setUint16(20,1,true);d.setUint16(22,2,true);
+  d.setUint32(24,b.sampleRate,true);d.setUint32(28,b.sampleRate*4,true);d.setUint16(32,4,true);d.setUint16(34,16,true);s(36,"data");d.setUint32(40,n*4,true);
+  for(let i=0,o=44;i<n;i++,o+=4){d.setInt16(o,Math.max(-1,Math.min(1,L[i]))*32767,true);d.setInt16(o+2,Math.max(-1,Math.min(1,R[i]))*32767,true)}
+  return new Blob([d],{type:"audio/wav"})}
+function mp3(b){const e=new lamejs.Mp3Encoder(2,b.sampleRate,256),i16=f=>Int16Array.from(f,v=>Math.max(-1,Math.min(1,v))*32767),
+  L=i16(b.getChannelData(0)),R=i16(b.getChannelData(1)),o=[];
+  for(let i=0;i<L.length;i+=1152){const x=e.encodeBuffer(L.subarray(i,i+1152),R.subarray(i,i+1152));if(x.length)o.push(x)}o.push(e.flush());return new Blob(o,{type:"audio/mpeg"})}
+const save=(blob,name)=>{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click()};
+$("dw").onclick=()=>mixed&&save(wav(mixed),"my-song.wav");
+$("dm").onclick=()=>{if(!mixed)return;if(typeof lamejs==="undefined"){say("s4","mp3 encoder did not load. Use the WAV download.",true);return}save(mp3(mixed),"my-song.mp3")};
+</script>
+</body>
+</html>

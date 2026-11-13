@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f0d14">
+<title>AI Music Studio: write, sing and download songs</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;800&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f0d14;--card:#1a1722;--line:#322d41;--ink:#f3eff8;--mut:#a69fb8;--hot:#ff5c8a;--glow:#ffc15e;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+main{max-width:640px;margin:0 auto;padding:26px 18px 70px}
+h1{font:800 clamp(2.4rem,10vw,3.8rem)/.95 "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.03em;margin:6px 0 10px}
+h1 em{font-style:normal;color:var(--glow)}
+h2{font:800 1.3rem "Bricolage Grotesque",sans-serif;margin:0 0 12px}
+.lead{color:var(--mut);margin:0 0 22px}
+section{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+label{display:block;font-weight:500;margin:14px 0 6px}
+input[type=text],textarea,select{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:10px;background:#120f19;color:var(--ink);font:inherit}
+textarea{resize:vertical;min-height:210px;line-height:1.45}
+:focus-visible{outline:3px solid var(--glow);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip,.seg button{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:8px 14px;font:inherit;cursor:pointer}
+.chip[aria-pressed=true],.seg button[aria-pressed=true]{background:var(--hot);border-color:var(--hot);color:#1a0b10;font-weight:500}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.seg button{border-radius:12px;padding:12px 6px;text-align:center}
+.seg small{display:block;opacity:.8}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row{display:flex;justify-content:space-between}
+input[type=range]{width:100%;accent-color:var(--hot)}
+.hint{color:var(--mut);font-size:.9rem;margin:8px 0 0}
+button.ai{margin-top:12px;width:100%;padding:13px;border-radius:12px;border:1.5px solid var(--glow);background:transparent;color:var(--glow);font:500 1rem "IBM Plex Sans",sans-serif;cursor:pointer}
+button.go{width:100%;padding:17px;border:0;border-radius:999px;background:var(--hot);color:#1a0b10;font:800 1.2rem "Bricolage Grotesque",sans-serif;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}
+.status{min-height:1.5em;margin:12px 0 0;color:var(--mut)}
+.status.err{color:var(--hot)}
+.bar{height:6px;border-radius:3px;background:var(--line);margin-top:10px;overflow:hidden;display:none}
+.bar.on{display:block}.bar i{display:block;height:100%;width:30%;background:var(--glow);animation:slide 1.4s ease-in-out infinite}
+@keyframes slide{0%{margin-left:-30%}100%{margin-left:100%}}
+@media (prefers-reduced-motion:reduce){.bar i{animation:none;width:100%}}
+.track{border-top:1px solid var(--line);padding:14px 0}
+.track:first-child{border-top:0}
+.track audio{width:100%;margin:8px 0}
+.track a{display:inline-block;padding:10px 16px;border-radius:999px;background:var(--glow);color:#1a1205;font-weight:500;text-decoration:none}
+.empty{color:var(--mut);margin:0}
+</style>
+</head>
+<body>
+<main>
+  <h1>Write it. <em>Sing it.</em> Keep it.</h1>
+  <p><a href="studio.html" style="color:var(--glow)">Record your own vocals &rarr;</a></p>
+  <p class="lead">Write lyrics with AI or paste your own, pick a singer, and download the finished song as an mp3.</p>
+
+  <section>
+    <h2>1. Lyrics</h2>
+    <label for="topic">What's the song about?</label>
+    <input id="topic" type="text" maxlength="300" placeholder="A road trip home after a long time away">
+    <div class="chips" id="moods" role="group" aria-label="Mood"></div>
+    <button class="ai" id="writeBtn">Write full lyrics with AI</button>
+    <label for="lyrics">Lyrics (edit freely or paste your own)</label>
+    <textarea id="lyrics" maxlength="3500" placeholder="[Verse 1]&#10;Morning finds me thinking of you&#10;&#10;[Chorus]&#10;Oh, sing it out..."></textarea>
+    <p class="hint">Use tags like [Verse], [Chorus] and [Bridge] on their own lines.</p>
+    <div class="status" id="lyStatus" role="status" aria-live="polite"></div>
+  </section>
+
+  <section>
+    <h2>2. Voice and sound</h2>
+    <label id="singerLbl">Singer</label>
+    <div class="seg" id="singer" role="group" aria-labelledby="singerLbl">
+      <button type="button" data-v="female vocals, bright and airy" aria-pressed="true">Female<small>bright, airy</small></button>
+      <button type="button" data-v="male vocals, warm and rich" aria-pressed="false">Male<small>warm, rich</small></button>
+      <button type="button" data-v="male and female duet vocals" aria-pressed="false">Duet<small>both voices</small></button>
+    </div>
+    <label for="style">Style</label>
+    <input id="style" type="text" maxlength="200" value="pop, polished studio production">
+    <div class="two">
+      <div><label for="key">Key</label><select id="key"></select></div>
+      <div><label for="lang">Language</label>
+        <select id="lang">
+          <option value="en|English">English</option><option value="es|Spanish">Spanish</option>
+          <option value="fr|French">French</option><option value="de|German">German</option>
+          <option value="pt|Portuguese">Portuguese</option><option value="hi|Hindi">Hindi</option>
+          <option value="ja|Japanese">Japanese</option><option value="ko|Korean">Korean</option>
+          <option value="zh|Chinese">Chinese</option>
+        </select></div>
+    </div>
+    <label for="bpm"><span class="row"><span>Tempo</span><span id="bpmv">100 BPM</span></span></label>
+    <input id="bpm" type="range" min="60" max="180" value="100">
+    <label for="dur"><span class="row"><span>Length</span><span id="durv">90 sec</span></span></label>
+    <input id="dur" type="range" min="30" max="180" step="10" value="90">
+  </section>
+
+  <button class="go" id="go">Create song</button>
+  <div class="bar" id="bar"><i></i></div>
+  <div class="status" id="status" role="status" aria-live="polite"></div>
+
+  <section style="margin-top:22px">
+    <h2>Your songs</h2>
+    <div id="tracks"><p class="empty">Your finished songs appear here with a download button.</p></div>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let mood = "";
+["Uplifting","Romantic","Heartbroken","Confident","Nostalgic","Party","Hopeful","Dark"].forEach(m => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "chip"; b.textContent = m; b.setAttribute("aria-pressed","false");
+  b.onclick = () => { mood = mood === m ? "" : m; document.querySelectorAll("#moods .chip").forEach(c => c.setAttribute("aria-pressed", String(c.textContent === mood))); };
+  $("moods").append(b);
+});
+const keys = ["C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
+$("key").innerHTML = '<option value="">Auto</option>' + keys.flatMap(k => [k+" Major", k+" minor"]).map(k => `<option>${k}</option>`).join("");
+document.querySelectorAll("#singer button").forEach(b => b.onclick = () =>
+  document.querySelectorAll("#singer button").forEach(x => x.setAttribute("aria-pressed", String(x === b))));
+$("bpm").oninput = () => $("bpmv").textContent = $("bpm").value + " BPM";
+$("dur").oninput = () => $("durv").textContent = $("dur").value + " sec";
+
+const post = (url, body) => fetch(url, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)})
+  .then(async r => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "Something went wrong."); return d; });
+const say = (el, msg, err) => { el.textContent = msg; el.className = "status" + (err ? " err" : ""); };
+
+$("writeBtn").onclick = async () => {
+  const topic = $("topic").value.trim();
+  if (!topic) { say($("lyStatus"), "Tell me what the song is about first.", true); $("topic").focus(); return; }
+  $("writeBtn").disabled = true; say($("lyStatus"), "Writing your lyrics...");
+  try {
+    const d = await post("/api/lyrics", {topic, mood, language: $("lang").value.split("|")[1]});
+    $("lyrics").value = d.lyrics; say($("lyStatus"), "Lyrics ready. Edit them or create the song.");
+  } catch (e) { say($("lyStatus"), e.message, true); }
+  $("writeBtn").disabled = false;
+};
+
+let n = 0;
+$("go").onclick = async () => {
+  const lyrics = $("lyrics").value.trim();
+  const st = $("status");
+  if (!lyrics) { say(st, "Add lyrics first, written by AI or your own.", true); $("lyrics").focus(); return; }
+  const singer = document.querySelector("#singer [aria-pressed=true]").dataset.v;
+  const prompt = [singer, "sung lyrics with clear vocals", $("style").value.trim(), mood.toLowerCase()].filter(Boolean).join(", ");
+  $("go").disabled = true; $("bar").classList.add("on");
+  say(st, "Sending your song to the studio...");
+  try {
+    const {id} = await post("/api/song", {prompt, lyrics, duration:+$("dur").value, bpm:+$("bpm").value,
+      keyscale:$("key").value, vocal_language:$("lang").value.split("|")[0]});
+    const t0 = Date.now();
+    while (true) {
+      if (Date.now() - t0 > 6 * 60000) throw new Error("This is taking too long. Check that your music server is running.");
+      await new Promise(r => setTimeout(r, 3000));
+      const r = await fetch("/api/song?id=" + id); const d = await r.json().catch(() => ({}));
+      if (!r.ok || d.status === "error") throw new Error(d.error || "The song could not be made.");
+      if (d.status === "done") { addTrack(d.audio); say(st, "Song ready. Press play or download it."); break; }
+      say(st, d.status === "queued" ? "Waiting for the singer..." : "The singer is recording. About " + Math.max(1, Math.round(+$("dur").value / 30)) + " min.");
+    }
+  } catch (e) { say(st, e.message, true); }
+  $("go").disabled = false; $("bar").classList.remove("on");
+};
+
+function addTrack(src) {
+  const box = $("tracks"); if (!n) box.innerHTML = ""; n++;
+  const name = ($("topic").value.trim() || "song").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 30) || "song";
+  const el = document.createElement("div"); el.className = "track";
+  const b = document.createElement("b"); b.textContent = $("topic").value.trim() || "Song " + n;
+  const au = document.createElement("audio"); au.controls = true; au.src = src;
+  const a = document.createElement("a"); a.href = src; a.download = name + ".mp3"; a.textContent = "Download mp3";
+  el.append(b, au, a); box.prepend(el); au.play().catch(() => {});
+}
+</script>
+</body>
+</html>
